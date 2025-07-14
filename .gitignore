@@ -1,1 +1,4 @@
 .venv/
+.DS_Store
+MNIST_train
+MNIST_test
