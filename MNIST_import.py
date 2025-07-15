@@ -25,4 +25,3 @@ output_train_file = "./MNIST_train"
 output_test_file = "./MNIST_test"
 df_train.to_csv(output_train_file)
 df_test.to_csv(output_test_file)
-
