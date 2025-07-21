@@ -15,12 +15,13 @@ class Kmeans:
         self.dim = dim
         self.train_set = csv_to_array(data_path) / 255.0  # squash; range from 0 to 1
 
-        # make a dict - {nth dimension: {index: dimension centers(random number at first)} * 10}
-        # We need 10 small dicts for each dimensions because k = 10
         self.dimension_centers = self.initialize_dimension_centers()
 
         self.cluster_vectors = self.build_cluster_vectors()
-
+    
+    
+    # make a dict - {nth dimension: {index: dimension centers(random number at first)} * 10}
+    # We need 10 small dicts for each dimensions because k = 10
     def initialize_dimension_centers(self):
         dimension_centers = {}
         for dim in range(self.dim):
@@ -30,7 +31,9 @@ class Kmeans:
             dimension_centers[dim] = cluster_dict
         return dimension_centers
 
-    # will apply cosine_similarity
+    # will apply cosine_similarity, you can also use euclidean distance
+    # but I think cosine similarity is more suitable for this case
+    # because we are dealing with images, and images are more similar to each other
     def cosine_similarity(self, arr1, arr2):
         numerator = np.dot(arr1, arr2)
         denominator = np.linalg.norm(arr1) * np.linalg.norm(arr2)
@@ -44,33 +47,37 @@ class Kmeans:
             cluster_vectors.append(vec)
         return cluster_vectors
     
-    def update_centers(self, assignments):
-        cluster_sums = {
-            dim: {k: 0.0 for k in range(self.k)} for dim in range(self.dim)
-        }
-        cluster_counts = {
-            dim: {k: 0 for k in range(self.k)} for dim in range(self.dim)
-        }
-
-        for i, x in enumerate(self.train_set):
-            cluster = assignments[i]
-            for dim in range(self.dim):
-                cluster_sums[dim][cluster] += x[dim]
-                cluster_counts[dim][cluster] += 1
-
-
+    def assign_clusters(self):
+        labels = []
+        for x in self.train_set:
+            sims = [self.cosine_similarity(x, center) for center in self.cluster_vectors]
+            best_cluster = np.argmax(sims)
+            labels.append(best_cluster)
+        return np.array(labels)
+            
+    def update_centers(self, labels):
+        # Update each dimension's center value for each cluster
         for dim in range(self.dim):
             for k in range(self.k):
-                count = cluster_counts[dim][k]
-                if count > 0:
-                    avg = cluster_sums[dim][k] / count
-                    self.dimension_centers[dim][k] = avg
+                values = [self.train_set[i][dim] for i in range(self.n_samples) if labels[i] == k]
+                if values:
+                    self.dimension_centers[dim][k] = np.mean(values)
                 else:
                     self.dimension_centers[dim][k] = np.random.rand()
-        
         self.cluster_vectors = self.build_cluster_vectors()
 
-
+    def fit(self, max_iter=15):
+        labels = self.assign_clusters()
+        for _ in range(max_iter):
+            prev_labels = labels.copy()
+            self.update_centers(labels)
+            labels = self.assign_clusters()
+            if np.array_equal(prev_labels, labels):
+                break
+        self.labels = labels
+        return labels
+    
     # a labeling function to define the number that MNIST implies
-    def add_label(nparr):
+    # I will use 10 examples for each cluster to define the label
+    def label_cluster(np_array):
         pass
